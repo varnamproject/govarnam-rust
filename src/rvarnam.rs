@@ -1,7 +1,4 @@
-use crate::bindings::{
-    v_array::{varray_t, Suggestion_t},
-    varnam,
-};
+use crate::bindings::v_array::{varray_t, Suggestion_t};
 
 use super::bindings::varnam::*;
 use std::io::Error;
@@ -37,18 +34,18 @@ impl Varanam {
         }
     }
 
-    pub fn init(vst_file: &Path, learning_file: &Path) -> Result<Self, Error> {
+    pub fn init<T: AsRef<Path>>(vst_file: T, learning_file: T) -> Result<Self, Error> {
         let id = 22;
 
-        if !vst_file.exists() {
+        if !vst_file.as_ref().exists() {
             return Err(Error::new(
                 ErrorKind::NotFound,
                 "The path provided for the Vst file is invalid",
             ));
         }
 
-        let vst_file = vst_file.to_string_lossy().to_string();
-        let learning_file = learning_file.to_string_lossy().to_string();
+        let vst_file = vst_file.as_ref().to_string_lossy().to_string();
+        let learning_file = learning_file.as_ref().to_string_lossy().to_string();
         unsafe {
             let _init_id = varnam_init(
                 vst_file.as_ptr() as *const i8,
