@@ -29,8 +29,8 @@ pub struct varray_t {
 #[derive(Copy, Clone)]
 pub struct Suggestion_t {
     word: *mut c_char,
-    weight: c_int,
-    learned_on: c_int,
+    pub weight: c_int,
+    pub learned_on: c_int,
 }
 
 impl varray_t {
