@@ -21,7 +21,7 @@ fn main() {
         "schema/ml/ml.vst",
         "schema/learnings/learning-ml.vst",
     )
-    .expect("Cannot initalize varnam");
+    .expect("Cannot initialize varnam");
 
     let results = varanam.transliterate("good morning");
 
