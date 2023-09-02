@@ -1,5 +1,3 @@
-use std::path::Path;
-
 use govarnam::Varanam;
 
 #[test]
@@ -16,8 +14,8 @@ pub fn test_build() {
 
 #[test]
 pub fn test_init() {
-    let vst_file = Path::new("assets/ml/ml.vst");
-    let learning_file = Path::new("assets/ml/check.vst");
+    let vst_file = "assets/ml/ml.vst";
+    let learning_file = "assets/ml/check.vst";
     let varanam = Varanam::init(vst_file, learning_file).unwrap();
     let result = varanam.transliterate("morning");
     assert_eq!(result.len(), 10);
