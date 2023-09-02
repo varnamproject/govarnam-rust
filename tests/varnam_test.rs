@@ -1,6 +1,6 @@
-use std::{panic, path::Path};
+use std::path::Path;
 
-use rvarnam::Varanam;
+use govarnam::Varanam;
 
 #[test]
 pub fn test_version() {
@@ -20,6 +20,5 @@ pub fn test_init() {
     let learning_file = Path::new("assets/ml/check.vst");
     let varanam = Varanam::init(vst_file, learning_file).unwrap();
     let result = varanam.transliterate("morning");
-    println!("{:?}", &result);
     assert_eq!(result.len(), 10);
 }
