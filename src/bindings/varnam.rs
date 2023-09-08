@@ -6,7 +6,7 @@ extern "C" {
     pub fn varnam_get_version() -> *const c_char;
     pub fn varnam_get_build() -> *const c_char;
     pub fn varnam_get_last_error(varnamHandleID: c_int) -> *const c_char;
-    pub fn varnam_close(varanamHandleID: c_int);
+    pub fn varnam_close(varnamHandleID: c_int);
     pub fn varnam_init(
         vstFile: *const c_char,
         learningsFile: *const c_char,

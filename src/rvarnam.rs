@@ -8,11 +8,11 @@ use std::{
     path::Path,
 };
 
-pub struct Varanam {
+pub struct Varnam {
     handle_id: c_int,
 }
 
-impl Varanam {
+impl Varnam {
     pub fn get_version() -> String {
         unsafe {
             let version = varnam_get_version();
@@ -54,7 +54,7 @@ impl Varanam {
             );
         };
         // TODO: check error use init_id
-        Ok(Varanam { handle_id: id })
+        Ok(Varnam { handle_id: id })
     }
 
     pub fn transliterate<T: AsRef<str>>(&self, word: T) -> Vec<Suggestion_t> {
@@ -67,7 +67,7 @@ impl Varanam {
     }
 }
 
-impl Drop for Varanam {
+impl Drop for Varnam {
     fn drop(&mut self) {
         unsafe { varnam_close(self.handle_id) }
     }
