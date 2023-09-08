@@ -13,17 +13,17 @@ Add the library to your **Cargo.toml** file using the following command.
 ## Usage
 An example usages of this library.
 ```rs
-use govarnam::Varanam;
+use govarnam::Varnam;
 
 
 fn main() {
-    let varanam = Varanam::init(
+    let varnam = Varnam::init(
         "schema/ml/ml.vst",
         "schema/learnings/learning-ml.vst",
     )
     .expect("Cannot initialize varnam");
 
-    let results = varanam.transliterate("good morning");
+    let results = varnam.transliterate("good morning");
 
     for item in results {
         println!(
