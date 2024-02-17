@@ -18,4 +18,12 @@ extern "C" {
         word: *const c_char,
         resultPointer: *mut *mut varray_t,
     ) -> *const c_int;
+    pub fn varnam_import(varnamHandleID: c_int, filePath: *const c_char) -> c_int;
+    pub fn varnam_export(
+        varnamHandleID: c_int,
+        filePath: *const c_char,
+        wordsPerFile: c_int,
+    ) -> c_int;
+    pub fn varnam_debug(varnamHandleID: c_int, val: c_int);
+    pub fn varnam_learn(varnamHandleID: c_int, word: *const c_char, weight: c_int) -> c_int;
 }

@@ -8,6 +8,11 @@ use std::{
     path::Path,
 };
 
+// #[derive(Debug, Clone)]
+// pub struct VarnamError {
+//     message: String,
+// }
+
 pub struct Varnam {
     handle_id: c_int,
 }
@@ -34,9 +39,7 @@ impl Varnam {
         }
     }
 
-    pub fn init<T: AsRef<Path>>(vst_file: T, learning_file: T) -> Result<Self, Error> {
-        let id = 22;
-
+    pub fn init<T: AsRef<Path>>(vst_file: T, learning_file: T, id: i32) -> Result<Self, Error> {
         if !vst_file.as_ref().exists() {
             return Err(Error::new(
                 ErrorKind::NotFound,
@@ -64,6 +67,61 @@ impl Varnam {
         unsafe { varnam_transliterate(self.handle_id, id, word.as_ptr(), &mut varray_ptr) };
         let varray_pointer = unsafe { *varray_ptr as varray_t };
         varray_pointer.into()
+    }
+
+    pub fn import<T: AsRef<Path>>(&self, path: T) -> Result<i32, Error> {
+        if !path.as_ref().is_file() {
+            return Err(Error::new(
+                ErrorKind::NotFound,
+                "The path provided to export the learning file is invalid.",
+            ));
+        }
+        let import_path = path.as_ref().to_string_lossy().to_string();
+        let varnam_response =
+            unsafe { varnam_import(self.handle_id, import_path.as_ptr() as *const i8) };
+        Ok(varnam_response)
+    }
+
+    pub fn export<T: AsRef<Path>>(&self, path: T, words_per_file: i8) -> Result<i32, Error> {
+        // Check if the parent directory exists.
+        if path
+            .as_ref()
+            .parent()
+            .map_or_else(
+                || {
+                    Err(Error::new(
+                        ErrorKind::InvalidInput,
+                        "The path provided to export the learning file is invalid.",
+                    ))
+                },
+                |x| Ok(x),
+            )?
+            .is_dir()
+        {
+            let export_path = path.as_ref().to_string_lossy().to_string();
+            let varanam_response = unsafe {
+                varnam_export(
+                    self.handle_id,
+                    export_path.as_ptr() as *const i8,
+                    words_per_file as c_int,
+                )
+            };
+            println!(" Checking bad status code:{}", varanam_response);
+            Ok(varanam_response)
+        } else {
+            Err(Error::new(
+                ErrorKind::NotFound,
+                "The directory provided to export the learning file does not exists.",
+            ))
+        }
+    }
+
+    pub fn debug(&self, value: bool) {
+        unsafe { varnam_debug(self.handle_id, value as c_int) };
+    }
+
+    pub fn learn<T: AsRef<str>>(&self, word: T, weight: i32) -> i32 {
+        unsafe { varnam_learn(self.handle_id, word.as_ref().as_ptr() as *const i8, weight) }
     }
 }
 
