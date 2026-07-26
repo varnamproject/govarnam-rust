@@ -37,6 +37,15 @@ fn main() {
 }
 ```
 
+## Testing
+
+To run unit tests inside a Docker container (which builds and packages `libgovarnam` automatically):
+
+```bash
+make test-inside-container
+```
+
 ## License
 
 Licensed under the terms of the [Mozilla Public License Version 2.0](LICENSE.txt)
+

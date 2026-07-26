@@ -12,7 +12,7 @@ fn main() {
     for item in results {
         println!(
             "Word: {}, Weight: {}, Learned on: {}",
-            item.to_string(),
+            item.word,
             item.weight,
             item.learned_on,
         );

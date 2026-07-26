@@ -6,7 +6,6 @@ use std::ffi::{c_char, c_int, c_void, CStr};
 use std::fmt::{Debug, Display};
 
 #[link(name = "govarnam")]
-// v_array imports
 extern "C" {
     fn varray_init() -> *mut varray_t;
     fn varray_push(array: *const varray_t, data: *const c_void);
@@ -14,6 +13,7 @@ extern "C" {
     fn varray_length(array: *const varray_t) -> c_int;
     fn varray_is_empty(array: *const varray_t) -> bool;
     fn varray_clear(array: *const varray_t);
+    fn varray_free(array: *mut varray_t);
 }
 
 #[repr(C)]
@@ -28,124 +28,95 @@ pub struct varray_t {
 #[repr(C)]
 #[derive(Copy, Clone)]
 pub struct Suggestion_t {
-    word: *mut c_char,
+    pub word: *mut c_char,
     pub weight: c_int,
     pub learned_on: c_int,
 }
 
-impl varray_t {
-    pub fn len(&self) -> c_int {
-        unsafe { varray_length(self) }
+/// Safe Rust representation of a transliteration suggestion
+#[derive(Debug, Clone, PartialEq, Eq)]
+pub struct Suggestion {
+    pub word: String,
+    pub weight: i32,
+    pub learned_on: i32,
+}
+
+impl Suggestion {
+    pub(crate) fn from_raw(raw: &Suggestion_t) -> Self {
+        let word = if raw.word.is_null() {
+            String::new()
+        } else {
+            unsafe { CStr::from_ptr(raw.word).to_string_lossy().into_owned() }
+        };
+
+        Self {
+            word,
+            weight: raw.weight,
+            learned_on: raw.learned_on,
+        }
+    }
+}
+
+impl Display for Suggestion {
+    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+        f.write_str(&self.word)
+    }
+}
+
+/// Safe RAII wrapper managing the lifetime of a C `varray_t` allocation
+pub struct VArray {
+    ptr: *mut varray_t,
+}
+
+impl VArray {
+    pub fn new() -> Option<Self> {
+        let ptr = unsafe { varray_init() };
+        if ptr.is_null() {
+            None
+        } else {
+            Some(Self { ptr })
+        }
     }
 
-    pub fn init() -> *mut varray_t {
-        unsafe { varray_init() }
+    pub fn as_raw_mut_ptr(&mut self) -> *mut *mut varray_t {
+        &mut self.ptr
     }
 
-    pub fn push(&self, data: *const c_void) {
-        unsafe { varray_push(self, data) }
-    }
-
-    pub fn get(&self, index: c_int) -> *mut c_void {
-        unsafe { varray_get(self, index) }
+    pub fn len(&self) -> usize {
+        if self.ptr.is_null() {
+            0
+        } else {
+            unsafe { varray_length(self.ptr) as usize }
+        }
     }
 
     pub fn is_empty(&self) -> bool {
-        unsafe { varray_is_empty(self) }
+        self.len() == 0
     }
 
-    pub fn clear(&self) {
-        unsafe { varray_clear(self) }
-    }
-}
+    pub fn extract_suggestions(&self) -> Vec<Suggestion> {
+        let count = self.len();
+        let mut suggestions = Vec::with_capacity(count);
 
-impl Debug for varray_t {
-    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
-        let mut formater = f.debug_list();
-
-        for index in 0..self.len() {
-            let item = self.get(index);
-            let item = &(item as *const Suggestion_t);
-            formater.entry(item);
+        for index in 0..count {
+            let raw_item = unsafe { varray_get(self.ptr, index as c_int) };
+            if !raw_item.is_null() {
+                let sugg_raw = unsafe { &*(raw_item as *const Suggestion_t) };
+                suggestions.push(Suggestion::from_raw(sugg_raw));
+            }
         }
 
-        formater.finish()
+        suggestions
     }
 }
 
-impl From<varray_t> for Vec<Suggestion_t> {
-    fn from(value: varray_t) -> Self {
-        let mut result: Vec<Suggestion_t> = Vec::with_capacity(value.len() as usize);
-        for index in 0..value.len() {
-            let item = value.get(index);
-            let item = unsafe { *(item as *const Suggestion_t) };
-            result.push(item);
+impl Drop for VArray {
+    fn drop(&mut self) {
+        if !self.ptr.is_null() {
+            unsafe {
+                varray_clear(self.ptr);
+                varray_free(self.ptr);
+            }
         }
-        result
-    }
-}
-
-impl Debug for Suggestion_t {
-    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
-        f.debug_struct("Suggetion_t")
-            .field("word", &&self.extract_word())
-            .field("weight", &self.weight)
-            .field("learned_on", &self.learned_on)
-            .finish()
-    }
-}
-impl Display for Suggestion_t {
-    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
-        f.write_str(self.extract_word())
-    }
-}
-
-impl Suggestion_t {
-    fn extract_word(&self) -> &str {
-        let c_str = unsafe { CStr::from_ptr(self.word) };
-        c_str.to_str().unwrap()
-    }
-}
-
-impl Into<String> for Suggestion_t {
-    fn into(self) -> String {
-        self.extract_word().to_string()
-    }
-}
-
-#[cfg(test)]
-mod tests {
-    use std::ffi::c_int;
-
-    use super::varray_t;
-    use libc::c_void;
-
-    #[test]
-    fn test_init() {
-        let varray: varray_t = unsafe { *varray_t::init() };
-        assert_eq!(varray.len(), 0);
-        assert!(varray.is_empty());
-    }
-
-    #[test]
-    fn test_insert_and_get() {
-        let varray: varray_t = unsafe { *varray_t::init() };
-        let pointer_to_data = c_int::from(12);
-        varray.push(pointer_to_data as *const c_void);
-        let data = varray.get(0);
-        assert_eq!(varray.len(), 1);
-        assert_eq!(pointer_to_data, data as i32);
-    }
-
-    #[test]
-    fn test_clear() {
-        let varray: varray_t = unsafe { *varray_t::init() };
-        let pointer_to_data = c_int::from(12) as *const c_void;
-        varray.push(pointer_to_data);
-        varray.push(pointer_to_data);
-        assert_eq!(varray.len(), 2);
-        assert!(!varray.is_empty());
-        varray.clear();
-        assert!(varray.is_empty());
     }
 }
